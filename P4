@@ -1,0 +1,32 @@
+import keras, matplotlib.pyplot as plt
+from keras import layers
+
+(x_train, _), (x_test, _) = keras.datasets.mnist.load_data()
+x_train = x_train.reshape(-1, 784).astype('float32') / 255
+x_test = x_test.reshape(-1, 784).astype('float32') / 255
+
+inp = layers.Input(shape=(784,))
+x = layers.Dense(256, activation='relu')(inp)
+x = layers.Dense(128, activation='relu')(x)
+code_ = layers.Dense(64, activation='relu')(x)               # compressed representation
+x = layers.Dense(128, activation='relu')(code_)
+x = layers.Dense(256, activation='relu')(x)
+out = layers.Dense(784, activation='sigmoid')(x)
+
+autoencoder = keras.Model(inp, out)
+encoder = keras.Model(inp, code_)
+autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
+autoencoder.fit(x_train, x_train, epochs=20, batch_size=256, shuffle=True,
+                validation_data=(x_test, x_test))
+
+encoded = encoder.predict(x_test, verbose=0)
+decoded = autoencoder.predict(x_test, verbose=0)
+print('Compressed shape:', encoded.shape)
+
+n = 10
+plt.figure(figsize=(20, 4))
+for i in range(n):
+    for row, (img, title) in enumerate([(x_test[i], 'Original'), (decoded[i], 'Reconstructed')]):
+        plt.subplot(2, n, i + 1 + row * n)
+        plt.imshow(img.reshape(28, 28), cmap='gray'); plt.title(title); plt.axis('off')
+plt.show()
